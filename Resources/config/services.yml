@@ -1,0 +1,8 @@
+parameters:
+#    campaignchain_channel_linked_in.example.class: CampaignChain\Channel\LinkedInBundle\Example
+
+services:
+    campaignchain.channel.linkedin.rest.client:
+        class: CampaignChain\Channel\LinkedInBundle\REST\LinkedInClient
+        calls:
+            - [setContainer, ["@service_container"]]

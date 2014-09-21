@@ -1,0 +1,7 @@
+campaignchain_channel_linkedin_create:
+    pattern:  /channel/linkedin/create
+    defaults: { _controller: CampaignChainChannelLinkedInBundle:LinkedIn:create }
+
+campaignchain_channel_linkedin_login:
+    pattern:  /channel/linkedin/create/login
+    defaults: { _controller: CampaignChainChannelLinkedInBundle:LinkedIn:login }
