@@ -69,6 +69,14 @@ class LinkedInController extends Controller
                     $location->setIdentifier($profile->identifier);
                     $location->setName($profile->displayName);
                     $location->setLocationModule($locationModule);
+                    // If no image, then use the ghost person instead.
+                    if(!$profile->photoURL || strlen($profile->photoURL) == 0){
+                        $profile->photoURL = $this->container->get('templating.helper.assets')
+                            ->getUrl(
+                                '/bundles/campaignchainchannellinkedin/ghost_person.png',
+                                null
+                            );
+                    }
                     $location->setImage($profile->photoURL);
                     $location->setUrl($profile->profileURL);
 
