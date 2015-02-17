@@ -12,13 +12,8 @@
         }
     ],
     "require": {
-<<<<<<< HEAD
         "campaignchain/core": "dev-master",
         "campaignchain/security-authentication-client-oauth": "dev-master"
-=======
-        "campaignchain/core": "dev-master",
-        "campaignchain/security-authentication-client-oauth": "dev-master"
->>>>>>> 1.0.0-beta.1
     },
     "autoload": {
         "psr-4": { "CampaignChain\\Channel\\LinkedInBundle\\": "" }
