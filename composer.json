@@ -1,7 +1,7 @@
 {
     "name": "campaignchain/channel-linkedin",
     "description": "Connect with LinkedIn",
-    "keywords": ["linkedin","oauth"],
+    "keywords": ["linkedin","oauth","campaignchain"],
     "type": "campaignchain-channel",
     "homepage": "http://www.campaignchain.com",
     "license": "Apache-2.0",
