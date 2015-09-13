@@ -1,16 +1,21 @@
 {
     "name": "campaignchain/channel-linkedin",
     "description": "Connect with LinkedIn",
-    "keywords": ["linkedin","oauth","campaignchain"],
+    "keywords": ["linkedin","campaignchain"],
     "type": "campaignchain-channel",
     "homepage": "http://www.campaignchain.com",
     "license": "Apache-2.0",
     "authors": [
         {
-            "name": "Sandro Groganz",
-            "email": "sandro@campaignchain.com"
+            "name": "CampaignChain Inc.",
+            "email": "info@campaignchain.com",
+            "homepage": "http://www.campaignchain.com"
         }
     ],
+    "support": {
+        "issues": "https://github.com/CampaignChain/campaignchain-ce/issues",
+        "docs": "http://doc.campaignchain.com"
+    },
     "require": {
         "campaignchain/core": "dev-master",
         "campaignchain/security-authentication-client-oauth": "dev-master"
