@@ -1,6 +1,6 @@
 {
     "name": "campaignchain/channel-linkedin",
-    "description": "Connect with LinkedIn",
+    "description": "Connect with LinkedIn.",
     "keywords": ["linkedin","campaignchain"],
     "type": "campaignchain-channel",
     "homepage": "http://www.campaignchain.com",
