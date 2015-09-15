@@ -17,8 +17,8 @@
         "docs": "http://doc.campaignchain.com"
     },
     "require": {
-        "campaignchain/core": "1.0.0-beta.2",
-        "campaignchain/security-authentication-client-oauth": "1.0.0-beta.2"
+        "campaignchain/core": "dev-master",
+        "campaignchain/security-authentication-client-oauth": "dev-master"
     },
     "autoload": {
         "psr-4": { "CampaignChain\\Channel\\LinkedInBundle\\": "" }
