@@ -1,10 +1,19 @@
 {% extends 'CampaignChainCoreBundle:Base:base.html.twig' %}
 
 {% block body %}
-     <div class="jumbotron">
-         <p>Connect to the LinkedIn account by logging in to LinkedIn. Your username and password will remain with LinkedIn and will not be stored in this application.</p>
-         <p><a class="btn btn-primary btn-lg" role="button" onclick="popupwindow('{{ path('campaignchain_channel_linkedin_login') }}','',600,600);">Connect now</a></p>
-     </div>
+    <script type="text/javascript">
+        function logout() {
+            IN.User.logout();
+        }
+    </script>
+    <script type="text/javascript" src="//platform.linkedin.com/in.js">
+        api_key:   {{ app_id }}
+        authorize: true
+    </script>
+    <div class="jumbotron">
+        <p>Connect to the LinkedIn account by logging in to LinkedIn. Your username and password will remain with LinkedIn and will not be stored in this application.</p>
+        <p><a class="btn btn-primary btn-lg" role="button" onclick="logout(); popupwindow('{{ path('campaignchain_channel_linkedin_login') }}','',600,600);">Connect now</a></p>
+    </div>
 
  {% endblock %}
 
