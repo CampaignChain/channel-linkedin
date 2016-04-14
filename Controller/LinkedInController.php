@@ -11,7 +11,6 @@
 namespace CampaignChain\Channel\LinkedInBundle\Controller;
 
 use CampaignChain\CoreBundle\Entity\Location;
-use CampaignChain\Location\LinkedInBundle\Entity\LinkedInUser;
 use CampaignChain\Security\Authentication\Client\OAuthBundle\Authentication;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Session\Session;
