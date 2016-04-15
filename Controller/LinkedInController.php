@@ -11,7 +11,7 @@
 namespace CampaignChain\Channel\LinkedInBundle\Controller;
 
 use CampaignChain\CoreBundle\Entity\Location;
-use CampaignChain\Location\LinkedInBundle\Entity\LinkedInUser;
+use CampaignChain\Security\Authentication\Client\OAuthBundle\Authentication;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +29,11 @@ class LinkedInController extends Controller
         ),
     );
 
+    /**
+     * Connect to a LinkedIn account
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
     public function createAction()
     {
         $oauthApp = $this->get('campaignchain.security.authentication.client.oauth.application');
@@ -37,89 +42,209 @@ class LinkedInController extends Controller
         if(!$application){
             return $oauthApp->newApplicationTpl(self::RESOURCE_OWNER, $this->applicationInfo);
         }
-        else {
-            return $this->render(
-                'CampaignChainChannelLinkedInBundle:Create:index.html.twig',
-                array(
-                    'page_title' => 'Connect with LinkedIn',
-                    'app_id' => $application->getKey(),
-                )
-            );
-        }               
-    }
-
-    public function loginAction(Request $request){
-            $oauth = $this->get('campaignchain.security.authentication.client.oauth.authentication');
-            $status = $oauth->authenticate(self::RESOURCE_OWNER, $this->applicationInfo);
-            $profile = $oauth->getProfile();
-            
-            if($status){
-                try {
-                    $repository = $this->getDoctrine()->getManager();
-                    $repository->getConnection()->beginTransaction();
-
-                    $wizard = $this->get('campaignchain.core.channel.wizard');
-                    $wizard->setName($profile->displayName);
-
-                    // Get the location module.
-                    $locationService = $this->get('campaignchain.core.location');
-                    $locationModule = $locationService->getLocationModule('campaignchain/location-linkedin', 'campaignchain-linkedin-user');
-
-                    $location = new Location();
-                    $location->setIdentifier($profile->identifier);
-                    $location->setName($profile->displayName);
-                    $location->setLocationModule($locationModule);
-                    // If no image, then use the ghost person instead.
-                    if(!$profile->photoURL || strlen($profile->photoURL) == 0){
-                        $profile->photoURL = $this->container->get('templating.helper.assets')
-                            ->getUrl(
-                                '/bundles/campaignchainchannellinkedin/ghost_person.png',
-                                null
-                            );
-                    }
-                    $location->setImage($profile->photoURL);
-                    $location->setUrl($profile->profileURL);
-
-                    $wizard->addLocation($location->getIdentifier(), $location);
-
-                    $channel = $wizard->persist();
-                    $wizard->end();
-                    
-                    $oauth->setLocation($channel->getLocations()[0]);
-
-                    $linkedinUser = new LinkedInUser();
-                    $linkedinUser->setLocation($channel->getLocations()[0]);
-                    $linkedinUser->setIdentifier($profile->identifier);
-                    $linkedinUser->setDisplayName($profile->displayName);
-                    $linkedinUser->setProfileImageUrl($profile->photoURL);
-                    $linkedinUser->setProfileUrl($profile->profileURL);
-
-                    $repository->persist($linkedinUser);
-                    $repository->flush();
-
-                    $repository->getConnection()->commit();
-
-                    $this->get('session')->getFlashBag()->add(
-                        'success',
-                        'The LinkedIn location <a href="#">'.$profile->displayName.'</a> was connected successfully.'
-                    );
-                } catch (\Exception $e) {
-                    $repository->getConnection()->rollback();
-                    throw $e;
-                }
-            } else {
-                // A channel already exists that has been connected with this Facebook account
-                $this->get('session')->getFlashBag()->add(
-                    'warning',
-                    'A location has already been connected for this LinkedIn account.'
-                );
-            }
 
         return $this->render(
-            'CampaignChainChannelLinkedInBundle:Create:login.html.twig',
+            'CampaignChainChannelLinkedInBundle:Create:index.html.twig',
             array(
-                'redirect' => $this->generateUrl('campaignchain_core_channel')
+                'page_title' => 'Connect with LinkedIn',
+                'app_id' => $application->getKey(),
             )
         );
+    }
+
+    /**
+     * Perform the login into LinkedIn
+     *
+     * @param Request $request
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @throws \Exception
+     */
+    public function loginAction(Request $request){
+        $oauth = $this->get('campaignchain.security.authentication.client.oauth.authentication');
+        $status = $oauth->authenticate(self::RESOURCE_OWNER, $this->applicationInfo);
+
+        if (!$status) {
+            $this->addFlash(
+                'warning',
+                'A location has already been connected for this LinkedIn account.'
+            );
+
+            return $this->redirectToRoute('campaignchain_core_channel');
+        }
+
+        $wizard = $this->get('campaignchain.core.channel.wizard');
+        $wizard->set('profile', $oauth->getProfile());
+
+        // Allow to easily find the Facebook user's ID through the Wizard.
+        $wizard->set('linkedin_user_id', $oauth->getProfile()->identifier);
+        $tokens[$oauth->getProfile()->identifier] = $oauth->getToken();
+        $wizard->set('tokens', $tokens);
+
+        return $this->redirectToRoute('campaignchain_channel_linkedin_location_add');
+    }
+
+    /**
+     * @param Request $request
+     * @return \Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\Response
+     */
+    public function addLocationAction(Request $request)
+    {
+        $locations = $this->get('campaignchain_location_linked_in.service')
+            ->getParsedLocationsFromLinkedIn();
+        $form = $this->createFormBuilder();
+        $repository = $this->getDoctrine()->getRepository('CampaignChainCoreBundle:Location');
+
+        foreach ($locations as $identifier => $location) {
+            // Has the page already been added as a location?
+            $pageExists = $repository->findOneBy([
+                'identifier' => $identifier,
+                'locationModule' => $location->getLocationModule(),
+            ]);
+
+            // Compose the checkbox form field.
+            $form->add($identifier, 'checkbox', [
+                'label'     => '<img class="campaignchain-location-image-input-prepend" src="'.$location->getImage().'"> '.$location->getName(),
+                'required'  => false,
+                'data'     => true,
+                'mapped' => false,
+                'disabled' => $pageExists,
+                'attr' => [
+                    'align_with_widget' => true,
+                ],
+            ]);
+
+            // If a location has already been added before, remove it from this process.
+            if ($pageExists) {
+                unset($locations[$identifier]);
+            }
+        }
+
+        $form = $form->getForm();
+        $form->handleRequest($request);
+
+        if ($form->isValid()) {
+            $wizard = $this->get('campaignchain.core.channel.wizard');
+            // Find out which locations should be added, i.e. which respective checkbox is active.
+            foreach($locations as $identifier => $location){
+                if(!$form->get($identifier)->getData()){
+                    unset($locations[$identifier]);
+                    $wizard->removeLocation($identifier);
+                }
+            }
+
+            // If there's at least one location to be added, then have the user configure it.
+            if(is_array($locations) && count($locations)){
+                $wizard->setLocations($locations);
+
+                return $this->redirectToRoute('campaignchain_channel_linkedin_location_configure', ['step' => 0]);
+            }
+
+            $this->addFlash(
+                'warning',
+                'No new location has been added.'
+            );
+
+            return $this->redirectToRoute('campaignchain_core_channel');
+        }
+
+        return $this->render(
+            'CampaignChainCoreBundle:Base:new.html.twig',
+            array(
+                'page_title' => 'Add LinkedIn Locations',
+                'form' => $form->createView(),
+            ));
+
+    }
+
+    /**
+     * @param Request $request
+     * @param $step
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function configureLocationAction(Request $request, $step)
+    {
+        $wizard = $this->get('campaignchain.core.channel.wizard');
+        $locations = $wizard->getLocations();
+
+        // Get the identifier of the first element in the locations array.
+        $identifier = array_keys($locations)[$step];
+
+        // Retrieve the current location object.
+        $location = $locations[$identifier];
+
+        $locationType = $this->get('campaignchain.core.form.type.location');
+        $locationType->setBundleName($location->getLocationModule()->getBundle()->getName());
+        $locationType->setModuleIdentifier($location->getLocationModule()->getIdentifier());
+        $locationType->setView('hide_url');
+
+        $form = $this->createForm($locationType, $location);
+        $form->handleRequest($request);
+
+        if ($form->isValid()) {
+            if (!$wizard->has('flashBagMsg')) {
+                $wizard->set('flashBagMsg', '');
+            }
+
+            if ($location->getLocationModule()->getIdentifier() == 'campaignchain-linkedin-user') {
+                $this->get('campaignchain_location_linked_in.service')
+                    ->handleUserPageCreation($location);
+            } else {
+                $this->get('campaignchain_location_linked_in.service')
+                    ->handleCompanyPageCreation($location);
+            }
+
+            $wizard->addLocation($identifier, $location);
+
+            // Are there still locations to be configured?
+            if (count($locations) > ($step + 1) ) {
+                return $this->redirectToRoute('campaignchain_channel_linkedin_location_configure', ['step' =>  $step + 1]);
+            }
+
+            // We are done with configuring the locations, so lets end the Wizard and persist the locations.
+            // TODO: Wrap into DB transaction.
+            $repository = $this->getDoctrine()->getManager();
+
+            foreach($locations as $identifier => $location){
+                // Persist the Facebook user- and page-specific data.
+                $repository->persist($wizard->get($identifier));
+            }
+
+            $this->get('session')->getFlashBag()->add(
+                'success',
+                'The following locations are now connected:'.
+                '<ul>'.$wizard->get('flashBagMsg').'</ul>'
+            );
+
+            $tokens = $wizard->get('tokens');
+
+            $wizard->persist();
+
+            /*
+             * Store all access tokens per location in the OAuth Client
+             * bundle's Token entity, but only for the Facebook user
+             * locations, not the page locations.
+             */
+            $tokenService = $this->get('campaignchain.security.authentication.client.oauth.token');
+            foreach($tokens as $identifier => $token){
+                if (isset($locations[$identifier])) {
+                    $token = $repository->merge($token);
+                    $token->setLocation($locations[$identifier]);
+                    $tokenService->setToken($token);
+                }
+            }
+
+            $wizard->end();
+            $repository->flush();
+
+            return $this->redirect($this->generateUrl('campaignchain_core_channel'));
+        }
+
+        return $this->render(
+            'CampaignChainLocationLinkedInBundle::new.html.twig',
+            array(
+                'page_title' => 'Configure LinkedIn Location',
+                'form' => $form->createView(),
+                'location' => $location,
+            ));
     }
 }
