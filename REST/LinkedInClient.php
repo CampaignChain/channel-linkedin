@@ -18,6 +18,7 @@ use CampaignChain\Security\Authentication\Client\OAuthBundle\EntityService\Token
 use Symfony\Component\HttpFoundation\Session\Session;
 use Guzzle\Http\Client;
 use Guzzle\Plugin\Oauth\OauthPlugin;
+use CampaignChain\Security\Authentication\Client\OAuthBundle\Entity\Token;
 
 class LinkedInClient
 {
@@ -78,17 +79,17 @@ class LinkedInClient
         }
     }
 
-    private function getConnectionByApplication()
+    /**
+     * Return a connection based on the suplied Token
+     *
+     * @param Token $token
+     *
+     * @return Client
+     */
+    private function getConnectionByToken(Token $token)
     {
         $application = $this->oauthApp
             ->getApplication(self::RESOURCE_OWNER);
-
-        $token = $this->oauthToken
-            ->getTokenByApplication($application);
-
-        if (!$token) {
-            return null;
-        }
 
         return $this->connect($application->getKey(), $application->getSecret(), $token->getAccessToken(), $token->getTokenSecret());
     }
@@ -96,11 +97,13 @@ class LinkedInClient
     /**
      * Return the available companies
      *
+     * @param Token $token
+     *
      * @return array
      */
-    public function getCompanies()
+    public function getCompanies(Token $token)
     {
-        $connect = $this->getConnectionByApplication();
+        $connect = $this->getConnectionByToken($token);
 
         if (!$connect) {
             return [];
@@ -125,12 +128,14 @@ class LinkedInClient
     /**
      * Get the company's profile data
      *
-     * @param $id
+     * @param Token   $token
+     * @param integer $id
+     *
      * @return array
      */
-    public function getCompanyProfile($id)
+    public function getCompanyProfile(Token $token, $id)
     {
-        $connect = $this->getConnectionByApplication();
+        $connect = $this->getConnectionByToken($token);
 
         if (!$connect) {
             return [];

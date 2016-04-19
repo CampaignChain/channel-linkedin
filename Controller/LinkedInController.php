@@ -61,16 +61,7 @@ class LinkedInController extends Controller
      */
     public function loginAction(Request $request){
         $oauth = $this->get('campaignchain.security.authentication.client.oauth.authentication');
-        $status = $oauth->authenticate(self::RESOURCE_OWNER, $this->applicationInfo);
-
-        if (!$status) {
-            $this->addFlash(
-                'warning',
-                'A location has already been connected for this LinkedIn account.'
-            );
-
-            return $this->redirectToRoute('campaignchain_core_channel');
-        }
+        $oauth->authenticate(self::RESOURCE_OWNER, $this->applicationInfo);
 
         $wizard = $this->get('campaignchain.core.channel.wizard');
         $wizard->set('profile', $oauth->getProfile());
@@ -89,7 +80,8 @@ class LinkedInController extends Controller
      */
     public function addLocationAction(Request $request)
     {
-        $locations = $this->get('campaignchain_location_linked_in.service')
+        $linkedInService = $this->get('campaignchain_location_linked_in.service');
+        $locations = $linkedInService
             ->getParsedLocationsFromLinkedIn();
         $form = $this->createFormBuilder();
         $repository = $this->getDoctrine()->getRepository('CampaignChainCoreBundle:Location');
@@ -117,6 +109,17 @@ class LinkedInController extends Controller
             if ($pageExists) {
                 unset($locations[$identifier]);
             }
+        }
+
+        if (empty($locations)) {
+            $linkedInService->cleanUpUnassignedTokens();
+
+            $this->addFlash(
+                'warning',
+                'Every Locations are already connected with this LinkedIn account.'
+            );
+
+            return $this->redirectToRoute('campaignchain_core_channel');
         }
 
         $form = $form->getForm();
