@@ -234,7 +234,7 @@ class LinkedInClient
      * @param NewsItem $newsItem
      * @return array
      */
-    public function getCompanyUpdate(Activity $activity, NewsItem $newsItem, $throwException = true)
+    public function getCompanyUpdate(Activity $activity, NewsItem $newsItem)
     {
         $connection = $this->connectByActivity($activity);
 
@@ -256,11 +256,7 @@ class LinkedInClient
         try {
             return $request->send()->json();
         } catch (\Exception $e) {
-            if ($throwException) {
-                throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-            } else {
-                return null;
-            }
+            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
         }
     }
 

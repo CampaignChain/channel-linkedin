@@ -61,7 +61,7 @@ class LinkedInController extends Controller
      */
     public function loginAction(Request $request){
         $oauth = $this->get('campaignchain.security.authentication.client.oauth.authentication');
-        $oauth->authenticate(self::RESOURCE_OWNER, $this->applicationInfo);
+        $oauth->authenticate(self::RESOURCE_OWNER, $this->applicationInfo, true);
 
         $wizard = $this->get('campaignchain.core.channel.wizard');
         $wizard->set('profile', $oauth->getProfile());
@@ -112,7 +112,8 @@ class LinkedInController extends Controller
         }
 
         if (empty($locations)) {
-            $linkedInService->cleanUpUnassignedTokens();
+            $tokens = $wizard = $this->get('campaignchain.core.channel.wizard')->get('tokens');
+            $linkedInService->cleanUpUnassignedTokens($tokens);
 
             $this->addFlash(
                 'warning',
