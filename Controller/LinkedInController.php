@@ -113,7 +113,8 @@ class LinkedInController extends Controller
 
         if (empty($locations)) {
             $tokens = $wizard = $this->get('campaignchain.core.channel.wizard')->get('tokens');
-            $linkedInService->cleanUpUnassignedTokens($tokens);
+            $this->get('campaignchain.security.authentication.client.oauth.token')
+                ->cleanUpUnassignedTokens($tokens);
 
             $this->addFlash(
                 'warning',
