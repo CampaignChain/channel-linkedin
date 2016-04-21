@@ -44,16 +44,35 @@ class LinkedInClient
     /**
      * @param Activity $activity
      *
-     * @return Client
+     * @return LinkedInClientService
      */
-    public function connectByActivity(Activity $activity){
+    public function getConnectionByActivity(Activity $activity){
         $application = $this->oauthApp
             ->getApplication(self::RESOURCE_OWNER);
 
         $token = $this->oauthToken
             ->getToken($activity->getLocation());
 
-        return $this->connect($application->getKey(), $application->getSecret(), $token->getAccessToken(), $token->getTokenSecret());
+        $connection = $this->connect($application->getKey(), $application->getSecret(), $token->getAccessToken(), $token->getTokenSecret());
+
+        return new LinkedInClientService($connection);
+    }
+
+    /**
+     * Return a connection based on the suplied Token
+     *
+     * @param Token $token
+     *
+     * @return LinkedInClientService
+     */
+    public function getConnectionByToken(Token $token)
+    {
+        $application = $this->oauthApp
+            ->getApplication(self::RESOURCE_OWNER);
+
+        $connection = $this->connect($application->getKey(), $application->getSecret(), $token->getAccessToken(), $token->getTokenSecret());
+
+        return new LinkedInClientService($connection);
     }
 
     /**
@@ -61,9 +80,10 @@ class LinkedInClient
      * @param string $appSecret
      * @param string $accessToken
      * @param string $tokenSecret
+     *
      * @return Client
      */
-    public function connect($appKey, $appSecret, $accessToken, $tokenSecret){
+    private function connect($appKey, $appSecret, $accessToken, $tokenSecret){
         try {
             $client = new Client(self::BASE_URL.'/');
             $oauth  = new OauthPlugin(array(
@@ -75,222 +95,6 @@ class LinkedInClient
 
             return $client->addSubscriber($oauth);
         } catch(\Exception $e){
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * Return a connection based on the suplied Token
-     *
-     * @param Token $token
-     *
-     * @return Client
-     */
-    private function getConnectionByToken(Token $token)
-    {
-        $application = $this->oauthApp
-            ->getApplication(self::RESOURCE_OWNER);
-
-        return $this->connect($application->getKey(), $application->getSecret(), $token->getAccessToken(), $token->getTokenSecret());
-    }
-
-    /**
-     * Return the available companies
-     *
-     * @param Token $token
-     *
-     * @return array
-     */
-    public function getCompanies(Token $token)
-    {
-        $connect = $this->getConnectionByToken($token);
-
-        if (!$connect) {
-            return [];
-        }
-
-        $request = $connect->get('companies', [], [
-            'query' => [
-                'is-company-admin' => 'true',
-                'format' => 'json',
-            ]
-        ]);
-
-        try {
-            $response = $request->send()->json();
-
-            return $response['values'];
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * Get the company's profile data
-     *
-     * @param Token   $token
-     * @param integer $id
-     *
-     * @return array
-     */
-    public function getCompanyProfile(Token $token, $id)
-    {
-        $connect = $this->getConnectionByToken($token);
-
-        if (!$connect) {
-            return [];
-        }
-
-        $request = $connect->get('companies/'.$id.':(id,name,description,square-logo-url,website-url)', [], [
-            'query' => [
-                'format' => 'json',
-            ]
-        ]);
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * Share a news on a company page
-     *
-     * @param Activity $activity
-     * @param string   $content
-     *
-     * @return array
-     */
-    public function shareOnCompanyPage(Activity $activity, $content)
-    {
-        $connection = $this->connectByActivity($activity);
-
-        if (!$connection) {
-            return [];
-        }
-        $id = $activity->getLocation()->getIdentifier();
-
-        $request = $connection->post(
-            'companies/'.$id.'/shares',
-            [
-                'x-li-format' => 'json',
-            ],
-            json_encode($content),
-            [
-                'query' => [
-                    'format' => 'json',
-                ]
-            ]
-        );
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * Share a news on an user page
-     *
-     * @param Activity $activity
-     * @param string   $content
-     *
-     * @return array
-     */
-    public function shareOnUserPage(Activity $activity, $content)
-    {
-        $connection = $this->connectByActivity($activity);
-
-        if (!$connection) {
-            return [];
-        }
-
-        $request = $connection->post(
-            'people/~/shares',
-            [
-                'x-li-format' => 'json',
-            ],
-            json_encode($content),
-            [
-                'query' => [
-                    'format' => 'json',
-                ]
-            ]
-        );
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * Get a company update statistics
-     *
-     * @param Activity $activity
-     * @param NewsItem $newsItem
-     * @return array
-     */
-    public function getCompanyUpdate(Activity $activity, NewsItem $newsItem)
-    {
-        $connection = $this->connectByActivity($activity);
-
-        if (!$connection) {
-            return [];
-        }
-        $id = $activity->getLocation()->getIdentifier();
-
-        $request = $connection->get(
-            'companies/'.$id.'/updates/key='.$newsItem->getUpdateKey(),
-            [],
-            [
-                'query' => [
-                    'format' => 'json',
-                ]
-            ]
-        );
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * Get a user update statistics
-     *
-     * @param Activity $activity
-     * @param NewsItem $newsItem
-     * @return array
-     */
-    public function getUserUpdate(Activity $activity, NewsItem $newsItem)
-    {
-        //LinkedIn API seems broken, reenable when it works again.
-        return [];
-
-        $connection = $this->connectByActivity($activity);
-
-        if (!$connection) {
-            return [];
-        }
-
-        $request = $connection->get(
-            'people/~/network/updates/key='.$newsItem->getUpdateKey(),
-            [],
-            [
-                'query' => [
-                    'format' => 'json',
-                ]
-            ]
-        );
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
             throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
         }
     }
