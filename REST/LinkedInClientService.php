@@ -26,6 +26,10 @@ class LinkedInClientService
      */
     private $connect;
 
+    /**
+     * LinkedInClientService constructor.
+     * @param Client $connect
+     */
     public function __construct(Client $connect)
     {
         $this->connect = $connect;
@@ -47,8 +51,12 @@ class LinkedInClientService
 
         try {
             $response = $request->send()->json();
+            //the logged in user is not admin for any company
+            if (isset($response['_total']) && $response['_total'] > 0) {
+                return $response['values'];
+            }
 
-            return $response['values'];
+            return [];
         } catch (\Exception $e) {
             throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
         }
