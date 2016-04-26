@@ -96,7 +96,7 @@ class LinkedInClientService
     {
         $id = $activity->getLocation()->getIdentifier();
 
-        $request = $this->connection->post(
+        $request = $this->connect->post(
             'companies/'.$id.'/shares',
             [
                 'x-li-format' => 'json',
