@@ -71,7 +71,7 @@ class LinkedInController extends Controller
         $tokens[$oauth->getProfile()->identifier] = $oauth->getToken();
         $wizard->set('tokens', $tokens);
 
-        return $this->redirectToRoute('campaignchain_channel_linkedin_location_add');
+        return $this->render('CampaignChainChannelLinkedInBundle:Create:closePopUp.html.twig');
     }
 
     /**
