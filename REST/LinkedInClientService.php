@@ -189,16 +189,10 @@ class LinkedInClientService
      */
     public function getUserUpdate(Activity $activity, NewsItem $newsItem)
     {
-        //LinkedIn API seems broken, reenable when it works again.
-        return [];
+        //LinkedIn API seems broken, re-enable when it works again.
+        //return [];
 
-        $connection = $this->connectByActivity($activity);
-
-        if (!$connection) {
-            return [];
-        }
-
-        $request = $connection->get(
+        $request = $this->connect->get(
             'people/~/network/updates/key='.$newsItem->getUpdateKey(),
             [],
             [

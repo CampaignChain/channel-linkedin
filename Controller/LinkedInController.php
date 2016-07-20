@@ -33,6 +33,7 @@ class LinkedInController extends Controller
         'config_url' => 'https://www.linkedin.com/secure/developer',
         'parameters' => array(
             "force_login" => true,
+            'scope' => 'rw_company_admin, r_emailaddress, r_basicprofile, w_share',
         ),
     );
 
