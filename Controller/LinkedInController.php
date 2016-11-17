@@ -129,7 +129,7 @@ class LinkedInController extends Controller
                 'Every Locations are already connected with this LinkedIn account.'
             );
 
-            return $this->redirectToRoute('campaignchain_core_channel');
+            return $this->redirectToRoute('campaignchain_core_location');
         }
 
         $form = $form->getForm();
@@ -157,7 +157,7 @@ class LinkedInController extends Controller
                 'No new location has been added.'
             );
 
-            return $this->redirectToRoute('campaignchain_core_channel');
+            return $this->redirectToRoute('campaignchain_core_location');
         }
 
         return $this->render(
@@ -249,7 +249,7 @@ class LinkedInController extends Controller
             $wizard->end();
             $em->flush();
 
-            return $this->redirect($this->generateUrl('campaignchain_core_channel'));
+            return $this->redirect($this->generateUrl('campaignchain_core_location'));
         }
 
         return $this->render(
