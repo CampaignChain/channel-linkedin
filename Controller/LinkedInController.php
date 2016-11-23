@@ -101,8 +101,15 @@ class LinkedInController extends Controller
                 'locationModule' => $location->getLocationModule(),
             ]);
 
+            /*
+             * Workaround: Linkedin user IDs might start with a dash (-), which
+             * Symfony does not accept as a form field name. Hence, we add the
+             * letter "A" in front of every ID.
+             */
+            $formFieldName = 'A'.$identifier;
+
             // Compose the checkbox form field.
-            $form->add($identifier, 'checkbox', [
+            $form->add($formFieldName, 'checkbox', [
                 'label'     => '<img class="campaignchain-location-image-input-prepend" src="'.$location->getImage().'"> '.$location->getName(),
                 'required'  => false,
                 'data'     => true,
@@ -126,7 +133,7 @@ class LinkedInController extends Controller
 
             $this->addFlash(
                 'warning',
-                'Every Locations are already connected with this LinkedIn account.'
+                'All available Locations of this LinkedIn account are already connected.'
             );
 
             return $this->redirectToRoute('campaignchain_core_location');
@@ -139,7 +146,9 @@ class LinkedInController extends Controller
             $wizard = $this->get('campaignchain.core.channel.wizard');
             // Find out which locations should be added, i.e. which respective checkbox is active.
             foreach($locations as $identifier => $location){
-                if(!$form->get($identifier)->getData()){
+                // Here's the workaround again:
+                $formFieldName = 'A'.$identifier;
+                if(!$form->get($formFieldName)->getData()){
                     unset($locations[$identifier]);
                     $wizard->removeLocation($identifier);
                 }
