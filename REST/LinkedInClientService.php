@@ -20,7 +20,6 @@ namespace CampaignChain\Channel\LinkedInBundle\REST;
 use CampaignChain\CoreBundle\Entity\Activity;
 use CampaignChain\CoreBundle\Exception\ExternalApiException;
 use CampaignChain\Operation\LinkedInBundle\Entity\NewsItem;
-use Guzzle\Http\Client;
 
 /**
  * Class LinkedInClientService
@@ -29,15 +28,15 @@ use Guzzle\Http\Client;
 class LinkedInClientService
 {
     /**
-     * @var Client
+     * @var LinkedInClient
      */
     private $connect;
 
     /**
      * LinkedInClientService constructor.
-     * @param Client $connect
+     * @param LinkedInClient $connect
      */
-    public function __construct(Client $connect)
+    public function __construct(LinkedInClient $connect)
     {
         $this->connect = $connect;
     }
@@ -49,24 +48,19 @@ class LinkedInClientService
      */
     public function getCompanies()
     {
-        $request = $this->connect->get('companies', [], [
+        $response = $this->connect->request('GET','companies', [
             'query' => [
                 'is-company-admin' => 'true',
                 'format' => 'json',
             ]
         ]);
 
-        try {
-            $response = $request->send()->json();
-            //the logged in user is not admin for any company
-            if (isset($response['_total']) && $response['_total'] > 0) {
-                return $response['values'];
-            }
-
-            return [];
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
+        //the logged in user is not admin for any company
+        if (isset($response['_total']) && $response['_total'] > 0) {
+            return $response['values'];
         }
+
+        return [];
     }
 
     /**
@@ -78,17 +72,13 @@ class LinkedInClientService
      */
     public function getCompanyProfile($id)
     {
-        $request = $this->connect->get('companies/'.$id.':(id,name,description,square-logo-url,website-url)', [], [
+        return $this->connect->request(
+            'GET',
+            'companies/'.$id.':(id,name,description,square-logo-url,website-url)', [
             'query' => [
                 'format' => 'json',
             ]
         ]);
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
     }
 
     /**
@@ -99,28 +89,23 @@ class LinkedInClientService
      *
      * @return array
      */
-    public function shareOnCompanyPage(Activity $activity, $content)
+    public function shareOnCompanyPage(Activity $activity, array $content)
     {
         $id = $activity->getLocation()->getIdentifier();
 
-        $request = $this->connect->post(
+        return $this->connect->request(
+            'POST',
             'companies/'.$id.'/shares',
             [
-                'x-li-format' => 'json',
-            ],
-            json_encode($content),
-            [
+                'headers' => [
+                    'x-li-format' => 'json',
+                    ],
+                'body' => json_encode($content),
                 'query' => [
                     'format' => 'json',
                 ]
             ]
         );
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
     }
 
     /**
@@ -130,26 +115,21 @@ class LinkedInClientService
      *
      * @return array
      */
-    public function shareOnUserPage($content)
+    public function shareOnUserPage(array $content)
     {
-        $request = $this->connect->post(
+        return $this->connect->request(
+            'POST',
             'people/~/shares',
             [
-                'x-li-format' => 'json',
-            ],
-            json_encode($content),
-            [
+                'headers' => [
+                    'x-li-format' => 'json',
+                ],
+                'body' => json_encode($content),
                 'query' => [
                     'format' => 'json',
                 ]
             ]
         );
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
     }
 
     /**
@@ -163,21 +143,15 @@ class LinkedInClientService
     {
         $id = $activity->getLocation()->getIdentifier();
 
-        $request = $this->connect->get(
+        return $this->connect->request(
+            'GET',
             'companies/'.$id.'/updates/key='.$newsItem->getUpdateKey(),
-            [],
             [
                 'query' => [
                     'format' => 'json',
                 ]
             ]
         );
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
     }
 
     /**
@@ -192,20 +166,14 @@ class LinkedInClientService
         //LinkedIn API seems broken, re-enable when it works again.
         //return [];
 
-        $request = $this->connect->get(
+        return $this->connect->request(
+            'GET',
             'people/~/network/updates/key='.$newsItem->getUpdateKey(),
-            [],
             [
                 'query' => [
                     'format' => 'json',
                 ]
             ]
         );
-
-        try {
-            return $request->send()->json();
-        } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
-        }
     }
 }

@@ -28,12 +28,12 @@ class LinkedInController extends Controller
     const RESOURCE_OWNER = 'LinkedIn';
 
     private $applicationInfo = array(
-        'key_labels' => array('key', 'App Key'),
+        'key_labels' => array('id', 'App Key'),
         'secret_labels' => array('secret', 'App Secret'),
         'config_url' => 'https://www.linkedin.com/secure/developer',
         'parameters' => array(
             "force_login" => true,
-            'scope' => 'rw_company_admin, r_emailaddress, r_basicprofile, w_share',
+            'scope' => 'rw_company_admin r_emailaddress r_basicprofile w_share',
         ),
     );
 
@@ -67,10 +67,10 @@ class LinkedInController extends Controller
      * @return \Symfony\Component\HttpFoundation\Response
      * @throws \Exception
      */
-    public function loginAction(Request $request){
+    public function loginAction(Request $request)
+    {
         $oauth = $this->get('campaignchain.security.authentication.client.oauth.authentication');
         $oauth->authenticate(self::RESOURCE_OWNER, $this->applicationInfo, true);
-
         $wizard = $this->get('campaignchain.core.channel.wizard');
         $wizard->set('profile', $oauth->getProfile());
 
@@ -78,7 +78,6 @@ class LinkedInController extends Controller
         $wizard->set('linkedin_user_id', $oauth->getProfile()->identifier);
         $tokens[$oauth->getProfile()->identifier] = $oauth->getToken();
         $wizard->set('tokens', $tokens);
-
         return $this->render('CampaignChainChannelLinkedInBundle:Create:closePopUp.html.twig');
     }
 

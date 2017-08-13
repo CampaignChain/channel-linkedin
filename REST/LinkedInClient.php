@@ -22,9 +22,9 @@ use CampaignChain\CoreBundle\Exception\ExternalApiException;
 use CampaignChain\Operation\LinkedInBundle\Entity\NewsItem;
 use CampaignChain\Security\Authentication\Client\OAuthBundle\EntityService\ApplicationService;
 use CampaignChain\Security\Authentication\Client\OAuthBundle\EntityService\TokenService;
-use Symfony\Component\HttpFoundation\Session\Session;
-use Guzzle\Http\Client;
-use Guzzle\Plugin\Oauth\OauthPlugin;
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Subscriber\Oauth\Oauth1;
 use CampaignChain\Security\Authentication\Client\OAuthBundle\Entity\Token;
 
 class LinkedInClient
@@ -41,6 +41,9 @@ class LinkedInClient
      * @var TokenService
      */
     private $oauthToken;
+
+    /** @var  Client */
+    protected $client;
 
     public function __construct(ApplicationService $oauthApp, TokenService $oauthToken)
     {
@@ -88,21 +91,49 @@ class LinkedInClient
      * @param string $accessToken
      * @param string $tokenSecret
      *
-     * @return Client
+     * @return $this
      */
     private function connect($appKey, $appSecret, $accessToken, $tokenSecret){
         try {
-            $client = new Client(self::BASE_URL.'/');
-            $oauth  = new OauthPlugin(array(
-                'consumer_key'    => $appKey,
-                'consumer_secret' => $appSecret,
-                'token'           => $accessToken,
-                'token_secret'    => $tokenSecret,
-            ));
+//            $stack = HandlerStack::create();
+//
+//            $oauth = new Oauth1(
+//                [
+//                    'consumer_key'    => $appKey,
+//                    'consumer_secret' => $appSecret,
+//                    'token'           => $accessToken,
+//                    'token_secret'    => $tokenSecret,
+//                ]
+//            );
+//
+//            $stack->push($oauth);
+//
+//            $this->client = new Client([
+//                'base_uri' => self::BASE_URL.'/',
+//                'handler' => $stack,
+//                'auth' => 'oauth'
+//            ]);
 
-            return $client->addSubscriber($oauth);
+            $this->client = new Client([
+                'base_uri' => self::BASE_URL.'/',
+                'headers' => [
+                    'Authorization' => 'Bearer '.$accessToken,
+                ]
+            ]);
+
+            return $this;
+        } catch (\Exception $e) {
+            throw new ExternalApiException($e->getMessage(), $e->getCode());
+        }
+    }
+
+    public function request($method, $uri, $body = array())
+    {
+        try {
+            $res = $this->client->request($method, $uri, $body);
+            return json_decode($res->getBody(), true);
         } catch(\Exception $e){
-            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
+            throw new ExternalApiException($e->getMessage(), $e->getCode());
         }
     }
 }
