@@ -123,7 +123,7 @@ class LinkedInClient
 
             return $this;
         } catch (\Exception $e) {
-            throw new ExternalApiException($e->getMessage(), $e->getCode());
+            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -133,7 +133,7 @@ class LinkedInClient
             $res = $this->client->request($method, $uri, $body);
             return json_decode($res->getBody(), true);
         } catch(\Exception $e){
-            throw new ExternalApiException($e->getMessage(), $e->getCode());
+            throw new ExternalApiException($e->getMessage(), $e->getCode(), $e);
         }
     }
 }
